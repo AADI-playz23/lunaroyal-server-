@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Minecraft Control Panel</title>
+  <style>
+    body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; }
+    textarea { width: 100%; height: 300px; background: #111; color: #0f0; font-family: monospace; }
+    input, button { padding: 10px; font-size: 16px; margin: 5px 0; width: 100%; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Colab Minecraft Panel</h1>
+
+  <button onclick="startServer()">START SERVER</button>
+  <button onclick="stopServer()">STOP SERVER</button>
+
+  <h3>Send Command</h3>
+  <input id="cmd" placeholder="Enter command (example: say Hello)" />
+  <button onclick="sendCommand()">Send</button>
+
+  <h3>Server Console Logs</h3>
+  <textarea id="logs" readonly></textarea>
+
+  <script>
+    // ⛔ CHANGE THIS TO YOUR CLOUDFLARE URL
+    const API = "https://mixing-workplace-frank-trees.trycloudflare.com/";
+
+    async function startServer() {
+      await fetch(API + "/start", { method: "POST" });
+      alert("Starting server!");
+    }
+
+    async function stopServer() {
+      await fetch(API + "/stop", { method: "POST" });
+      alert("Stopping server!");
+    }
+
+    async function sendCommand() {
+      let cmd = document.getElementById("cmd").value;
+      await fetch(API + "/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cmd })
+      });
+      document.getElementById("cmd").value = "";
+    }
+
+    async function fetchLogs() {
+      const res = await fetch(API + "/logs");
+      const data = await res.json();
+      document.getElementById("logs").value = data.logs.join("\n");
+    }
+
+    setInterval(fetchLogs, 2000);
+  </script>
+</body>
+</html>
