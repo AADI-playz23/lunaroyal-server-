@@ -1,58 +1,245 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Minecraft Control Panel</title>
-  <style>
-    body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; }
-    textarea { width: 100%; height: 300px; background: #111; color: #0f0; font-family: monospace; }
-    input, button { padding: 10px; font-size: 16px; margin: 5px 0; width: 100%; }
-    button { cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<title>Project Upload Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ---------- GLOBAL ---------- */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+h1, h2 {
+  margin: 0 0 10px 0;
+}
+button {
+  cursor: pointer;
+}
+
+/* ---------- HEADER ---------- */
+header {
+  background: #020617;
+  padding: 15px 20px;
+  border-bottom: 1px solid #1e293b;
+}
+header h1 {
+  font-size: 22px;
+}
+
+/* ---------- LAYOUT ---------- */
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
+.card {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+/* ---------- FORM ---------- */
+input, textarea, select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: #020617;
+  border: 1px solid #1e293b;
+  color: #e5e7eb;
+  border-radius: 5px;
+}
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+button.primary {
+  background: #2563eb;
+  border: none;
+  color: white;
+  padding: 10px;
+  margin-top: 12px;
+  border-radius: 5px;
+}
+button.primary:hover {
+  background: #1d4ed8;
+}
+
+/* ---------- PROJECT LIST ---------- */
+.project {
+  border-bottom: 1px solid #1e293b;
+  padding: 10px 0;
+}
+.project:last-child {
+  border-bottom: none;
+}
+.project-title {
+  font-weight: bold;
+  font-size: 16px;
+}
+.project-meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.project-desc {
+  margin-top: 5px;
+  white-space: pre-wrap;
+}
+
+/* ---------- FOOTER ---------- */
+footer {
+  text-align: center;
+  font-size: 12px;
+  color: #94a3b8;
+  padding: 20px;
+}
+</style>
 </head>
+
 <body>
-  <h1>Colab Minecraft Panel</h1>
 
-  <button onclick="startServer()">START SERVER</button>
-  <button onclick="stopServer()">STOP SERVER</button>
+<header>
+  <h1>📂 Project Upload Platform</h1>
+</header>
 
-  <h3>Send Command</h3>
-  <input id="cmd" placeholder="Enter command (example: say Hello)" />
-  <button onclick="sendCommand()">Send</button>
+<div class="container">
 
-  <h3>Server Console Logs</h3>
-  <textarea id="logs" readonly></textarea>
+  <!-- UPLOAD FORM -->
+  <div class="card">
+    <h2>Upload a Project</h2>
 
-  <script>
-    // ⛔ CHANGE THIS TO YOUR CLOUDFLARE URL
-    const API = "https://mixing-workplace-frank-trees.trycloudflare.com/";
+    <input id="title" placeholder="Project Title" required>
 
-    async function startServer() {
-      await fetch(API + "/start", { method: "POST" });
-      alert("Starting server!");
+    <select id="category">
+      <option value="Science">Science Model</option>
+      <option value="Coding">Coding Project</option>
+      <option value="Robotics">Robotics</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <textarea id="description" placeholder="Project description"></textarea>
+
+    <input id="filelink" placeholder="File link (Drive / GitHub / ZIP URL)">
+
+    <button class="primary" onclick="submitProject()">Submit Project</button>
+  </div>
+
+  <!-- PROJECT LIST -->
+  <div class="card">
+    <h2>Published Projects</h2>
+    <div id="projects">Loading projects...</div>
+  </div>
+
+</div>
+
+<footer>
+  Powered by GitHub Pages • Cloudflare • GitHub Issues
+</footer>
+
+<script>
+/*
+  ===============================
+  CONFIGURATION
+  ===============================
+  Replace with your Cloudflare Worker URL
+*/
+const API_URL = "https://YOUR-WORKER-NAME.workers.dev";
+
+/*
+  ===============================
+  SUBMIT PROJECT
+  ===============================
+*/
+async function submitProject() {
+  const title = document.getElementById("title").value.trim();
+  const category = document.getElementById("category").value;
+  const description = document.getElementById("description").value.trim();
+  const filelink = document.getElementById("filelink").value.trim();
+
+  if (!title) {
+    alert("Project title is required");
+    return;
+  }
+
+  const payload = {
+    title,
+    category,
+    description,
+    filelink,
+    created: new Date().toISOString()
+  };
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error("Upload failed");
+
+    alert("Project submitted successfully");
+    document.querySelectorAll("input, textarea").forEach(e => e.value = "");
+    loadProjects();
+
+  } catch (err) {
+    alert("Error submitting project");
+  }
+}
+
+/*
+  ===============================
+  LOAD PROJECTS
+  ===============================
+*/
+async function loadProjects() {
+  const container = document.getElementById("projects");
+  container.innerHTML = "Loading projects...";
+
+  try {
+    const res = await fetch(API_URL);
+    const issues = await res.json();
+
+    if (!Array.isArray(issues)) {
+      container.innerHTML = "No projects found";
+      return;
     }
 
-    async function stopServer() {
-      await fetch(API + "/stop", { method: "POST" });
-      alert("Stopping server!");
-    }
+    container.innerHTML = issues.map(issue => {
+      let data;
+      try {
+        data = JSON.parse(issue.body);
+      } catch {
+        data = {};
+      }
 
-    async function sendCommand() {
-      let cmd = document.getElementById("cmd").value;
-      await fetch(API + "/command", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cmd })
-      });
-      document.getElementById("cmd").value = "";
-    }
+      return `
+        <div class="project">
+          <div class="project-title">${issue.title.replace("[Project] ", "")}</div>
+          <div class="project-meta">
+            ${data.category || "Uncategorized"} • ${new Date(issue.created_at).toLocaleDateString()}
+          </div>
+          <div class="project-desc">${data.description || ""}</div>
+          ${data.filelink ? `<div><a href="${data.filelink}" target="_blank">🔗 Project File</a></div>` : ""}
+        </div>
+      `;
+    }).join("");
 
-    async function fetchLogs() {
-      const res = await fetch(API + "/logs");
-      const data = await res.json();
-      document.getElementById("logs").value = data.logs.join("\n");
-    }
+  } catch (err) {
+    container.innerHTML = "Failed to load projects";
+  }
+}
 
-    setInterval(fetchLogs, 2000);
-  </script>
+loadProjects();
+</script>
+
 </body>
 </html>
